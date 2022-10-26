@@ -74,6 +74,7 @@ body.before-load {
 }
 
 .scroll-section {
+	/* section이 relative이여야 */
 	position: relative;
 	padding-top: 50vh;
 }
