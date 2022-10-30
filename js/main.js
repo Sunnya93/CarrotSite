@@ -113,6 +113,10 @@
 			values: {
 				rect1X: [0, 0, {start:0, end:0}],
 				rect2X: [0, 0, {start:0, end:0}],
+				BlendHeight: [0, 0, {start:0, end:0}],
+				canvas_scale: [0, 0, {start:0, end:0}],
+				canvasCaption_opacity: [0, 1, {start:0, end:0}],
+				canvasCaption_translateY: [20, 0, {start:0, end: 0}],
 				rectStartY: 0
 			}
 		}
@@ -142,6 +146,15 @@
 	}
 
 	SetCanvasImages();
+
+	function checkMenu(){
+		if(yOffset > 44){
+			document.body.classList.add('local-nav-sticky');
+		}
+		else{
+			document.body.classList.remove('local-nav-sticky');
+		}
+	}
 
     function setLayout() {
 		// 각 스크롤 섹션의 높이 세팅
@@ -300,12 +313,13 @@
 					objs.messageC.style.opacity = calcValues(values.messageC_opacity_out, currentYOffset);
 					objs.pinC.style.transform = `scaleY(${calcValues(values.pinC_scaleY, currentYOffset)})`;
 				}
-	
+
 				break;
 	
 			case 3:
 				// console.log('3 play');
 
+				let step = 0;
 				//가로/세로 모두 꽉 차게 하기 위해 여기서 셋팅(계산 필요)
 				const widthRatio = window.innerWidth / objs.canvas.width;
 				const heightRatio = window.innerHeight / objs.canvas.height;
@@ -360,6 +374,60 @@
 				objs.context.fillRect(calcValues(values.rect1X, currentYOffset), 0, parseInt(whiteRectWidth), objs.canvas.height);
 				objs.context.fillRect(calcValues(values.rect2X, currentYOffset), 0, parseInt(whiteRectWidth), objs.canvas.height);
 
+				objs.canvas.style.marginTop = `0`;
+
+				if(scrollRatio < values.rect1X[2].end){
+					step = 1;
+					objs.canvas.classList.remove('sticky');
+				} else{
+					step = 2;
+					//이미지 블랜드
+					//blendHeight
+					values.BlendHeight[0] = 0;
+					values.BlendHeight[1] = objs.canvas.height;
+					values.BlendHeight[2].start = values.rect1X[2].end;
+					//blend 속도를 조절한다
+					values.BlendHeight[2].end = values.BlendHeight[2].start + 0.2; 	
+
+					//currentYOffset = 현재의 신에서 얼마나 스크롤 되었는가?
+					const blendHeight = calcValues(values.BlendHeight, currentYOffset);
+
+					objs.context.drawImage(objs.images[1], 
+						0, objs.canvas.height - blendHeight, objs.canvas.width, blendHeight,
+						0, objs.canvas.height - blendHeight, objs.canvas.width, blendHeight
+					);
+
+					objs.canvas.classList.add('sticky');
+					objs.canvas.style.top = `${-(objs.canvas.height - objs.canvas.height * canvasScaleRatio) / 2}px`;
+				}
+
+				if(scrollRatio > values.BlendHeight[2].end
+					&& values.BlendHeight[2].end > 0){
+					values.canvas_scale[0] = canvasScaleRatio;
+					values.canvas_scale[1] = document.body.offsetWidth / (1.5 * objs.canvas.width);
+					values.canvas_scale[2].start = values.BlendHeight[2].end;
+					values.canvas_scale[2].end = values.canvas_scale[2].start + 0.2;
+
+					objs.canvas.style.transform = `scale(${calcValues(values.canvas_scale, currentYOffset)})`;
+
+				}
+				
+				if(scrollRatio > values.canvas_scale[2].end
+					&& values.canvas_scale[2].end > 0){
+					objs.canvas.classList.remove('sticky');
+					objs.canvas.style.marginTop = `${scrollHeight * 0.4}px`;
+
+					values.canvasCaption_opacity[2].start = values.canvas_scale[2].end;
+					values.canvasCaption_opacity[2].end = values.canvasCaption_opacity[2].start + 0.1;
+
+					values.canvasCaption_translateY[2].start = values.canvas_scale[2].end;
+					values.canvasCaption_translateY[2].end = values.canvasCaption_translateY[2].start + 0.1;
+
+					objs.canvasCaption.style.opacity = calcValues(values.canvasCaption_opacity, currentYOffset);
+					objs.canvasCaption.style.transform = `translate3d(0, ${calcValues(values.canvasCaption_translateY, currentYOffset)}, 0)`;
+					
+				}
+
 				break;
 		}
 	}
@@ -409,6 +477,7 @@
 	window.addEventListener('scroll', () => {
 		yOffset = window.pageYOffset;
 		scrollLoop();
+		checkMenu();
 	});
 
 	window.addEventListener('load', () => {
